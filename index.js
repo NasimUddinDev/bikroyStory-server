@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 
 const app = express();
 const port = process.env.prot || 5000;
@@ -21,6 +22,7 @@ async function run() {
   try {
     const categoryCollection = client.db("BikroyStore").collection("categorys");
     const productsCollection = client.db("BikroyStore").collection("products");
+    const usersCollection = client.db("BikroyStore").collection("users");
 
     // All category
     app.get("/categorys", async (req, res) => {
@@ -47,6 +49,13 @@ async function run() {
 
       const products = await productsCollection.find({}).toArray();
       res.send(products);
+    });
+
+    // User info add database
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
     });
   } catch (error) {
     console.log(error.message);
