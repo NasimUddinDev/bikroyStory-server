@@ -23,6 +23,7 @@ async function run() {
     const categoryCollection = client.db("BikroyStore").collection("categorys");
     const productsCollection = client.db("BikroyStore").collection("products");
     const usersCollection = client.db("BikroyStore").collection("users");
+    const bookingsCollection = client.db("BikroyStore").collection("bookings");
 
     // All category
     app.get("/categorys", async (req, res) => {
@@ -70,6 +71,19 @@ async function run() {
         return res.send({ accessToken: token });
       }
       res.status(403).send({ accessToken: "" });
+    });
+
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      const result = await bookingsCollection.insertOne(booking);
+      res.send(result);
+    });
+
+    app.get("/bookings", async (req, res) => {
+      const email = req.query.email;
+      const query = { buyerEmail: email };
+      const bookings = await bookingsCollection.find(query).toArray();
+      res.send(bookings);
     });
   } catch (error) {
     console.log(error.message);
