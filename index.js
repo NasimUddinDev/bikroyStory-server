@@ -61,10 +61,17 @@ async function run() {
       res.send(result);
     });
 
+    // Delete Product
+    app.delete("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // All Products
     app.get("/products", async (req, res) => {
       const category = req.query.category;
-
       if (category) {
         const filter = { category: category };
         const filterProducts = await productsCollection.find(filter).toArray();
@@ -72,6 +79,14 @@ async function run() {
       }
 
       const products = await productsCollection.find({}).toArray();
+      res.send(products);
+    });
+
+    // Seller ways Product get
+    app.get("/sellerProducts", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const query = { sellerEmail: email };
+      const products = await productsCollection.find(query).toArray();
       res.send(products);
     });
 
@@ -135,7 +150,6 @@ async function run() {
 
     app.get("/bookings", verifyJWT, async (req, res) => {
       const email = req.query.email;
-
       const decodedEmail = req.decoded.email;
       if (decodedEmail !== email) {
         return res.status(401).send({ message: "forbidden access" });
