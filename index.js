@@ -67,11 +67,18 @@ async function run() {
       res.send(products);
     });
 
-    // User info add database
+    // User info save database
     app.post("/users", async (req, res) => {
       const user = req.body;
       const result = await usersCollection.insertOne(user);
       res.send(result);
+    });
+
+    // users get api
+    app.get("/users", async (req, res) => {
+      const query = {};
+      const users = await usersCollection.find(query).toArray();
+      res.send(users);
     });
 
     app.get("/jwt", async (req, res) => {
