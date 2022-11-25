@@ -81,6 +81,14 @@ async function run() {
       res.send(users);
     });
 
+    // user Admin check
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      res.send({ Admin: user?.role === "Admin" });
+    });
+
     // Delete User
     app.delete("/users/:id", async (req, res) => {
       const id = req.params.id;
