@@ -92,13 +92,26 @@ async function run() {
 
     // User info save database
     app.post("/users", async (req, res) => {
-      const user = req.body;
-      const result = await usersCollection.insertOne(user);
+      const email = req.body.email;
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      if (user?.email === email) {
+        return res.send({ message: "User Already added" });
+      }
+      const newUser = req.body;
+      const result = await usersCollection.insertOne(newUser);
       res.send(result);
     });
 
     // users get api
     app.get("/users", verifyJWT, async (req, res) => {
+      const role = req.query.role;
+      if (role) {
+        const filter = { role: role };
+        const result = await usersCollection.find(filter).toArray();
+        return res.send(result);
+      }
+
       const query = {};
       const users = await usersCollection.find(query).toArray();
       res.send(users);
