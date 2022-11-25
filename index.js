@@ -81,13 +81,21 @@ async function run() {
       res.send(users);
     });
 
+    // Delete User
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
+
     app.get("/jwt", async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const user = await usersCollection.findOne(query);
       if (user) {
         const token = jwt.sign({ email }, process.env.jwt_token, {
-          expiresIn: "1h",
+          expiresIn: "10h",
         });
 
         return res.send({ accessToken: token });
