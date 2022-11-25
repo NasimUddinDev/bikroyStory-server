@@ -142,12 +142,22 @@ async function run() {
       res.status(403).send({ accessToken: "" });
     });
 
+    // Booking post
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
     });
 
+    // Booking Delete
+    app.delete("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await bookingsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // Booking get
     app.get("/bookings", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const decodedEmail = req.decoded.email;
