@@ -54,14 +54,22 @@ async function run() {
       res.send(category);
     });
 
+    // Product add
+    app.post("/products", async (req, res) => {
+      const product = req.body;
+      const result = await productsCollection.insertOne(product);
+      res.send(result);
+    });
+
     // All Products
     app.get("/products", async (req, res) => {
       const category = req.query.category;
-      //   console.log(categoryName);
 
-      const filter = { category: category };
-      const filterProducts = await productsCollection.find(filter).toArray();
-      return res.send(filterProducts);
+      if (category) {
+        const filter = { category: category };
+        const filterProducts = await productsCollection.find(filter).toArray();
+        return res.send(filterProducts);
+      }
 
       const products = await productsCollection.find({}).toArray();
       res.send(products);
@@ -75,7 +83,7 @@ async function run() {
     });
 
     // users get api
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyJWT, async (req, res) => {
       const query = {};
       const users = await usersCollection.find(query).toArray();
       res.send(users);
