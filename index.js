@@ -321,6 +321,7 @@ async function run() {
       const payment = req.body;
       const result = await paymentsCollection.insertOne(payment);
 
+      // Update booking
       const id = payment.bookingId;
       const filter = { _id: ObjectId(id) };
       const updateDoc = {
@@ -333,16 +334,21 @@ async function run() {
         updateDoc
       );
 
+      // update product advertise and available/sold
       const productId = payment.ProductId;
       const query = { _id: ObjectId(productId) };
+      const option = { upsert: true };
       const updateAdvertiseDoc = {
         $set: {
           advertise: "",
+          available: "soled",
         },
       };
+
       const updateAdvertise = await productsCollection.updateOne(
         query,
-        updateAdvertiseDoc
+        updateAdvertiseDoc,
+        option
       );
 
       res.send(result);
