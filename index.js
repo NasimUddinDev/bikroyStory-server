@@ -39,6 +39,9 @@ async function run() {
     const productsCollection = client.db("BikroyStore").collection("products");
     const usersCollection = client.db("BikroyStore").collection("users");
     const bookingsCollection = client.db("BikroyStore").collection("bookings");
+    const wishlistsCollection = client
+      .db("BikroyStore")
+      .collection("wishlists");
 
     // All category
     app.get("/categorys", async (req, res) => {
@@ -55,7 +58,13 @@ async function run() {
     });
 
     // Product add
-    app.post("/products", async (req, res) => {
+    app.post("/products", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "Seller") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
       const product = req.body;
       const result = await productsCollection.insertOne(product);
       res.send(result);
@@ -67,6 +76,45 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const result = await productsCollection.deleteOne(query);
       res.send(result);
+    });
+
+    // Add advertise Product update
+    app.put("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          advertise: "advertised",
+        },
+      };
+      const result = await productsCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    // Remove advertise Product update
+    app.patch("/products/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      // const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          advertise: "",
+        },
+      };
+      const result = await productsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    // Advertised Product get
+    app.get("/advertised", async (req, res) => {
+      const query = { advertise: "advertised" };
+      const advertised = await productsCollection.find(query).toArray();
+      res.send(advertised);
     });
 
     // All Products
@@ -82,8 +130,34 @@ async function run() {
       res.send(products);
     });
 
-    // Seller ways Product get
-    app.get("/sellerProducts", verifyJWT, async (req, res) => {
+    // Report Products
+    app.put("/products/report/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          report: "reported",
+        },
+      };
+      const result = await productsCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    // Reported product get
+    app.get("/products/report", verifyJWT, async (req, res) => {
+      const report = req.query.report;
+      const query = { report: report };
+      const products = await productsCollection.find(query).toArray();
+      res.send(products);
+    });
+
+    // User ways Product get
+    app.get("/userProducts", verifyJWT, async (req, res) => {
       const email = req.query.email;
       const query = { sellerEmail: email };
       const products = await productsCollection.find(query).toArray();
@@ -192,6 +266,37 @@ async function run() {
         return res.send({ accessToken: token });
       }
       res.status(403).send({ accessToken: "" });
+    });
+
+    // Wishlist products
+    app.post("/wishlists", async (req, res) => {
+      const wishlist = req.body;
+      const result = await wishlistsCollection.insertOne(wishlist);
+      res.send(result);
+    });
+
+    // Get Wishlist
+    app.get("/wishlists", async (req, res) => {
+      const email = req.query.email;
+      const filter = { user: email };
+      const wishlists = await wishlistsCollection.find(filter).toArray();
+      res.send(wishlists);
+    });
+
+    // Delete Wishlist
+    app.delete("/wishlists/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await wishlistsCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // Targetet Booking
+    app.get("/bookings/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const booking = await bookingsCollection.findOne(filter);
+      res.send(booking);
     });
 
     // Booking post
