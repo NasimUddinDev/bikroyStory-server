@@ -100,20 +100,6 @@ async function run() {
       res.send(result);
     });
 
-    // Remove advertise Product update
-    app.patch("/products/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
-      // const options = { upsert: true };
-      const updateDoc = {
-        $set: {
-          advertise: "",
-        },
-      };
-      const result = await productsCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
-
     // Advertised Product get
     app.get("/advertised", async (req, res) => {
       const query = { advertise: "advertised" };
@@ -346,6 +332,19 @@ async function run() {
         filter,
         updateDoc
       );
+
+      const productId = payment.ProductId;
+      const query = { _id: ObjectId(productId) };
+      const updateAdvertiseDoc = {
+        $set: {
+          advertise: "",
+        },
+      };
+      const updateAdvertise = await productsCollection.updateOne(
+        query,
+        updateAdvertiseDoc
+      );
+
       res.send(result);
     });
 
