@@ -125,7 +125,7 @@ async function run() {
       res.send({ Admin: user?.role === "Admin" });
     });
 
-    // user Admin check
+    // user seller check
     app.get("/users/seller/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
@@ -133,11 +133,50 @@ async function run() {
       res.send({ Seller: user?.role === "Seller" });
     });
 
+    app.get("/user", async (req, res) => {
+      const email = req.query.email;
+      const filter = { email: email };
+      const user = await usersCollection.findOne(filter);
+      res.send(user);
+    });
+
     // Delete User
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "Admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await usersCollection.deleteOne(query);
+      const filter = { _id: ObjectId(id) };
+      const result = await usersCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    // make seller verify
+    app.put("/users/:id", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "Admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          verify: "verify",
+        },
+      };
+      const result = await usersCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
 
