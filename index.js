@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STYPE_KEY);
 
 const app = express();
 const port = process.env.prot || 5000;
@@ -10,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { query } = require("express");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.bnskqpv.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
@@ -39,9 +41,11 @@ async function run() {
     const productsCollection = client.db("BikroyStore").collection("products");
     const usersCollection = client.db("BikroyStore").collection("users");
     const bookingsCollection = client.db("BikroyStore").collection("bookings");
-    const wishlistsCollection = client
-      .db("BikroyStore")
-      .collection("wishlists");
+    const paymentsCollection = client.db("BikroyStore").collection("payments");
+
+    // const wishlistsCollection = client
+    //   .db("BikroyStore")
+    //   .collection("wishlists");
 
     // All category
     app.get("/categorys", async (req, res) => {
@@ -325,6 +329,40 @@ async function run() {
       const query = { buyerEmail: email };
       const bookings = await bookingsCollection.find(query).toArray();
       res.send(bookings);
+    });
+
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCollection.insertOne(payment);
+
+      const id = payment.bookingId;
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          paid: true,
+        },
+      };
+      const updateBooking = await bookingsCollection.updateOne(
+        filter,
+        updateDoc
+      );
+      res.send(result);
+    });
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const booking = req.body;
+      const price = booking.price;
+      const convertPrice = price * 100;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: convertPrice,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
     });
   } catch (error) {
     console.log(error.message);
