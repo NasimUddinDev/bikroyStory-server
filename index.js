@@ -43,10 +43,6 @@ async function run() {
     const bookingsCollection = client.db("BikroyStore").collection("bookings");
     const paymentsCollection = client.db("BikroyStore").collection("payments");
 
-    // const wishlistsCollection = client
-    //   .db("BikroyStore")
-    //   .collection("wishlists");
-
     // All category
     app.get("/categorys", async (req, res) => {
       const categorys = await categoryCollection.find({}).toArray();
@@ -220,7 +216,7 @@ async function run() {
     });
 
     // make seller verify
-    app.put("/users/:id", verifyJWT, async (req, res) => {
+    app.put("/users/:email", verifyJWT, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
       const user = await usersCollection.findOne(query);
@@ -228,9 +224,11 @@ async function run() {
         return res.status(403).send({ message: "forbidden access" });
       }
 
-      const id = req.params.id;
-      const filter = { _id: ObjectId(id) };
+      const email = req.params.email;
+
+      const filter = { email: email };
       const options = { upsert: true };
+
       const updateDoc = {
         $set: {
           verify: "verify",
@@ -241,6 +239,20 @@ async function run() {
         updateDoc,
         options
       );
+
+      // Product collection seller verify update
+      const productFilter = { sellerEmail: email };
+      const updateProductDoc = {
+        $set: {
+          sellerVerify: "verify",
+        },
+      };
+      const productresult = await productsCollection.updateMany(
+        productFilter,
+        updateProductDoc,
+        options
+      );
+
       res.send(result);
     });
 
@@ -256,29 +268,6 @@ async function run() {
         return res.send({ accessToken: token });
       }
       res.status(403).send({ accessToken: "" });
-    });
-
-    // Wishlist products
-    app.post("/wishlists", async (req, res) => {
-      const wishlist = req.body;
-      const result = await wishlistsCollection.insertOne(wishlist);
-      res.send(result);
-    });
-
-    // Get Wishlist
-    app.get("/wishlists", async (req, res) => {
-      const email = req.query.email;
-      const filter = { user: email };
-      const wishlists = await wishlistsCollection.find(filter).toArray();
-      res.send(wishlists);
-    });
-
-    // Delete Wishlist
-    app.delete("/wishlists/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await wishlistsCollection.deleteOne(query);
-      res.send(result);
     });
 
     // Targetet Booking
@@ -305,7 +294,7 @@ async function run() {
     });
 
     // Booking get
-    app.get("/bookings", verifyJWT, async (req, res) => {
+    app.get("/bookings", async (req, res) => {
       const email = req.query.email;
       const decodedEmail = req.decoded.email;
       if (decodedEmail !== email) {
@@ -354,6 +343,7 @@ async function run() {
       res.send(result);
     });
 
+    //Stripe Payment  api
     app.post("/create-payment-intent", async (req, res) => {
       const booking = req.body;
       const price = booking.price;
