@@ -70,11 +70,18 @@ async function run() {
       res.send(result);
     });
 
-    // Delete Product
-    app.delete("/products/:id", async (req, res) => {
+    // Delete Product(Seller can delete her any product)
+    app.delete("/products/:id", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "Seller") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const id = req.params.id;
-      const query = { _id: ObjectId(id) };
-      const result = await productsCollection.deleteOne(query);
+      const filter = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(filter);
       res.send(result);
     });
 
@@ -136,10 +143,32 @@ async function run() {
 
     // Reported product get
     app.get("/products/report", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "Admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
       const report = req.query.report;
-      const query = { report: report };
-      const products = await productsCollection.find(query).toArray();
+      const filter = { report: report };
+      const products = await productsCollection.find(filter).toArray();
       res.send(products);
+    });
+
+    // Reported product delete by Admin only
+    app.delete("/products/report/:id", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+      if (user?.role !== "Admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await productsCollection.deleteOne(filter);
+      res.send(result);
     });
 
     // User ways Product get
@@ -193,6 +222,7 @@ async function run() {
       res.send({ Seller: user?.role === "Seller" });
     });
 
+    // Singel User
     app.get("/user", async (req, res) => {
       const email = req.query.email;
       const filter = { email: email };
@@ -225,7 +255,6 @@ async function run() {
       }
 
       const email = req.params.email;
-
       const filter = { email: email };
       const options = { upsert: true };
 
@@ -294,11 +323,12 @@ async function run() {
     });
 
     // Booking get
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyJWT, async (req, res) => {
       const email = req.query.email;
+
       const decodedEmail = req.decoded.email;
       if (decodedEmail !== email) {
-        return res.status(401).send({ message: "forbidden access" });
+        return res.status(403).send({ message: "forbidden access" });
       }
 
       const query = { buyerEmail: email };
